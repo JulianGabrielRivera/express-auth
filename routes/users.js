@@ -48,7 +48,7 @@ router.post("/signup", function (req, res, next) {
     })
     .then((userFromDB) => {
       console.log("Newly created user is: ", userFromDB);
-      res.redirect("/users/profile");
+      res.redirect("/users/login");
     })
     .catch((error) => {
       if (error instanceof mongoose.Error.ValidationError) {
@@ -63,11 +63,55 @@ router.post("/signup", function (req, res, next) {
       }
     });
 });
-// auth.routes.js
-// the imports, get and post route remain untouched for now
+
+router.get("/login", (req, res) => {
+  res.render("auth/login.hbs");
+});
+
+router.post("/login", (req, res, next) => {
+  const { email, password } = req.body;
+
+  // we can do  if password === "", same as saying false so we can use !password
+  if (!email || !password) {
+    res.render("auth/login.hbs", {
+      errorMessage: "Please enter both, email and password to login.",
+    });
+    return;
+  }
+
+  User.findOne({ email })
+    .then((user) => {
+      if (!user) {
+        res.render("auth/login.hbs", {
+          errorMessage: "Email is not registered. Try with other email.",
+        });
+        return;
+        // password here is req.body, user.password is the one from database.
+      } else if (bcryptjs.compareSync(password, user.passwordHash)) {
+        req.session.user = user;
+        res.redirect("/users/profile");
+      } else {
+        res.render("auth/login.hbs", { errorMessage: "Incorrect password." });
+      }
+    })
+    .catch((error) => next(error));
+});
+
+// userProfile route and the module export stay unchanged
 
 router.get("/profile", (req, res) => {
-  res.render("users/user-profile.hbs");
+  // key session is another key of the req object.
+  console.log("SESSION =====> ", req.session);
+  const user = req.session.user;
+  // user is a key value not only an object so we have to give it curly brackets here.
+  res.render("users/user-profile.hbs", { user });
+});
+
+router.get("/logout", (req, res, next) => {
+  req.session.destroy((err) => {
+    if (err) next(err);
+    res.redirect("/");
+  });
 });
 
 module.exports = router;
