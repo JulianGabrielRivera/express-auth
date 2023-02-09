@@ -4,11 +4,13 @@ const bcryptjs = require("bcryptjs");
 const saltRounds = 10;
 const User = require("../models/User.model");
 const mongoose = require("mongoose");
+const { isLoggedIn, isLoggedOut } = require("../middleware/route-guard.js");
+
 /* GET users listing. */
-router.get("/signup", function (req, res, next) {
+router.get("/signup", isLoggedOut, function (req, res, next) {
   res.render("auth/signup.hbs");
 });
-router.post("/signup", function (req, res, next) {
+router.post("/signup", isLoggedOut, function (req, res, next) {
   console.log("The form data: ", req.body);
 
   const { username, email, password } = req.body;
@@ -64,11 +66,11 @@ router.post("/signup", function (req, res, next) {
     });
 });
 
-router.get("/login", (req, res) => {
+router.get("/login", isLoggedOut, (req, res) => {
   res.render("auth/login.hbs");
 });
 
-router.post("/login", (req, res, next) => {
+router.post("/login", isLoggedOut, (req, res, next) => {
   const { email, password } = req.body;
 
   // we can do  if password === "", same as saying false so we can use !password
@@ -99,7 +101,7 @@ router.post("/login", (req, res, next) => {
 
 // userProfile route and the module export stay unchanged
 
-router.get("/profile", (req, res) => {
+router.get("/profile", isLoggedIn, (req, res) => {
   // key session is another key of the req object.
   console.log("SESSION =====> ", req.session);
   const user = req.session.user;
@@ -107,7 +109,7 @@ router.get("/profile", (req, res) => {
   res.render("users/user-profile.hbs", { user });
 });
 
-router.get("/logout", (req, res, next) => {
+router.get("/logout", isLoggedIn, (req, res, next) => {
   req.session.destroy((err) => {
     if (err) next(err);
     res.redirect("/");
